@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon server",
-    "start:prod": "set NODE_ENV=production && nodemon server"
+    "start:prod": "set NODE_ENV=production && nodemon server",
+    "debug": "ndb server"
   },
   "author": "",
   "license": "ISC",
@@ -25,9 +26,10 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^3.4.0",
     "eslint-plugin-react": "^7.24.0",
+    "ndb": "^1.1.5",
     "prettier": "^2.3.2"
   },
   "engines": {
-    "node":">=10.0.0"
+    "node": ">=10.0.0"
   }
 }
