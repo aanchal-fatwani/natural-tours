@@ -1,6 +1,7 @@
 const User = require('../models/userModel');
 const AppError = require('../utils/appError');
 const catchAsyncErrors = require('../utils/catchAsyncErrors');
+const factory = require('./handlerFactory');
 
 // exports.getAllUsers = (req, res) => {
 //   res.status(500).json({
@@ -11,14 +12,18 @@ const catchAsyncErrors = require('../utils/catchAsyncErrors');
 
 const filterObj = (obj, ...allowedFields) => {
   const newObj = {};
-  Object.keys(obj).forEach(el => {
+  Object.keys(obj).forEach((el) => {
     if (allowedFields.includes(el)) newObj[el] = obj[el];
   });
   return newObj;
 };
 
-exports.updateMe = catchAsyncErrors(async (req, res, next) => {
+exports.getMe = (req, res, next) => {
+  req.params.id = req.user.id;
+  next();
+};
 
+exports.updateMe = catchAsyncErrors(async (req, res, next) => {
   // 1) Create error if user POSTs password data
   if (req.body.password || req.body.passwordConfirm) {
     return next(
@@ -35,14 +40,14 @@ exports.updateMe = catchAsyncErrors(async (req, res, next) => {
   // 3) Update user document
   const updatedUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {
     new: true,
-    runValidators: true
+    runValidators: true,
   });
 
   res.status(200).json({
     status: 'success',
     data: {
-      user: updatedUser
-    }
+      user: updatedUser,
+    },
   });
 });
 
@@ -51,21 +56,21 @@ exports.deleteMe = catchAsyncErrors(async (req, res, next) => {
 
   res.status(204).json({
     status: 'success',
-    data: null
+    data: null,
   });
 });
 
-exports.getAllUsers = catchAsyncErrors(async (req, res, next) => {
-  const users = await User.find();
+// exports.getAllUsers = catchAsyncErrors(async (req, res, next) => {
+//   const users = await User.find();
 
-  res.status(200).json({
-    status: 'success',
-    results: users.length,
-    data: {
-      users,
-    },
-  });
-});
+//   res.status(200).json({
+//     status: 'success',
+//     results: users.length,
+//     data: {
+//       users,
+//     },
+//   });
+// });
 
 exports.createUser = (req, res) => {
   res.status(500).json({
@@ -73,21 +78,30 @@ exports.createUser = (req, res) => {
     message: 'This route is not yet defined',
   });
 };
+
 exports.getUserById = (req, res) => {
   res.status(500).json({
     status: 'error',
     message: 'This route is not yet defined',
   });
 };
-exports.updateUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route is not yet defined',
-  });
-};
-exports.deleteUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route is not yet defined',
-  });
-};
+
+// exports.updateUser = (req, res) => {
+//   res.status(500).json({
+//     status: 'error',
+//     message: 'This route is not yet defined',
+//   });
+// };
+// exports.deleteUser = (req, res) => {
+//   res.status(500).json({
+//     status: 'error',
+//     message: 'This route is not yet defined',
+//   });
+// };
+
+exports.getUser = factory.getOne(User);
+exports.getAllUsers = factory.getAll(User);
+
+// Do NOT update passwords with this!
+exports.updateUser = factory.updateOne(User);
+exports.deleteUser = factory.deleteOne(User);

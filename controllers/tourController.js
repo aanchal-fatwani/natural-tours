@@ -1,8 +1,9 @@
-const fs = require('fs');
+// const fs = require('fs');
 const Tour = require('../models/tourModel');
 const APIFeatures = require('../utils/apiFeatures');
 const AppError = require('../utils/appError');
 const catchAsyncErrors = require('../utils/catchAsyncErrors');
+const factory = require('./handlerFactory');
 
 // const tours = JSON.parse(
 //   fs.readFileSync(`${__dirname}/../dev-data/data/tours-simple.json`)
@@ -126,9 +127,17 @@ exports.getAllTours = catchAsyncErrors(async (req, res, next) => {
   // });
 });
 
+exports.getTour = factory.getOne(Tour, { path: 'reviews' });
 exports.getTourById = catchAsyncErrors(async (req, res, next) => {
   // try {
-  const tour = await Tour.findById(req.params.id);
+  const tour = await Tour.findById(req.params.id).populate('reviews');
+
+  //Populating (Copy this code to all routes or use a query middleware)
+  // const tour = await Tour.findById(req.params.id).populate('guides');
+  // const tour = await Tour.findById(req.params.id).populate({
+  //   path: 'guides',
+  //   select: '-__v -passwordConfirm',
+  // }); //Removing fields
   // Tour.findOne({ _id: req.params.id });
 
   if (!tour) {
@@ -228,23 +237,24 @@ exports.updateTour = catchAsyncErrors(async (req, res, next) => {
   // }
 });
 
-exports.deleteTour = catchAsyncErrors(async (req, res, next) => {
-  const tour = await Tour.findByIdAndDelete(req.params.id);
-  if (!tour) {
-    return next(new AppError('No tour with given ID', 404));
-  }
-  // try {
-  res.status(204).json({
-    status: 'success',
-    data: null,
-  });
-  // } catch (err) {
-  //   res.status(404).json({
-  //     status: 'fail',
-  //     message: err,
-  //   });
-  // }
-});
+exports.deleteTour = factory.deleteOne(Tour);
+// exports.deleteTour = catchAsyncErrors(async (req, res, next) => {
+//   const tour = await Tour.findByIdAndDelete(req.params.id);
+//   if (!tour) {
+//     return next(new AppError('No tour with given ID', 404));
+//   }
+//   // try {
+//   res.status(204).json({
+//     status: 'success',
+//     data: null,
+//   });
+//   // } catch (err) {
+//   //   res.status(404).json({
+//   //     status: 'fail',
+//   //     message: err,
+//   //   });
+//   // }
+// });
 
 exports.getTourStats = catchAsyncErrors(async (req, res) => {
   // try {
@@ -331,4 +341,77 @@ exports.getMonthlyPlan = catchAsyncErrors(async (req, res) => {
   //     message: err,
   //   });
   // }
+});
+
+// /tours-within/:distance/center/:latlng/unit/:unit
+// /tours-within/233/center/34.111745,-118.113491/unit/mi
+exports.getToursWithin = catchAsyncErrors(async (req, res, next) => {
+  const { distance, latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(',');
+
+  const radius = unit === 'mi' ? distance / 3963.2 : distance / 6378.1;
+
+  if (!lat || !lng) {
+    next(
+      new AppError(
+        'Please provide latitutr and longitude in the format lat,lng.',
+        400
+      )
+    );
+  }
+
+  const tours = await Tour.find({
+    startLocation: { $geoWithin: { $centerSphere: [[lng, lat], radius] } },
+  });
+
+  res.status(200).json({
+    status: 'success',
+    results: tours.length,
+    data: {
+      data: tours,
+    },
+  });
+});
+
+exports.getDistances = catchAsyncErrors(async (req, res, next) => {
+  const { latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(',');
+
+  const multiplier = unit === 'mi' ? 0.000621371 : 0.001; // 1 meter = 0.000621371 miles
+
+  if (!lat || !lng) {
+    next(
+      new AppError(
+        'Please provide latitute and longitude in the format lat,lng.',
+        400
+      )
+    );
+  }
+
+  const distances = await Tour.aggregate([
+    {
+      $geoNear: {
+        // should be first in pipeline
+        near: {
+          type: 'Point',
+          coordinates: [lng * 1, lat * 1],
+        },
+        distanceField: 'distance',
+        distanceMultiplier: multiplier,
+      },
+    },
+    {
+      $project: {
+        distance: 1,
+        name: 1,
+      },
+    },
+  ]);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      data: distances,
+    },
+  });
 });
