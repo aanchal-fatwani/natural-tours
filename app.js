@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -5,18 +6,29 @@ const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 const reviewRouter = require('./routes/reviewRoutes');
+const viewRouter = require('./routes/viewRoutes');
 
 const app = express();
+
+app.set('view engine', 'pug');
+app.set('views', path.join(__dirname, 'views')); // handles in between slashes for us
+
+app.use(cors());
+app.options('*', cors());
+
 // GLOBAL MIDDLEWARES
 
 // Set security HTTP headers
 app.use(helmet());
+// app.use(helmet({ contentSecurityPolicy: false }));
 
 // Limit requests from same API
 const limiter = rateLimit({
@@ -31,8 +43,9 @@ console.log(process.env.NODE_ENV);
 if (process.env.NODE_ENV === 'development') app.use(morgan('dev'));
 
 // Body parser, reading data from body into req.body
-// app.use(express.json());
 app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(cookieParser());
 
 // Data sanitization against NoSQL query injection
 app.use(mongoSanitize());
@@ -66,6 +79,26 @@ app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
   next();
 });
+app.use((req, res, next) => {
+  console.log(req.headers.origin);
+  res.header('Access-Control-Allow-Origin', req.headers.origin);
+  // res.header(
+  //   'Access-Control-Allow-Headers',
+  //   'Origin, X-Requested-With, Content-Type, Accept'
+  // );
+  // res.header("Access-Control-Allow-Headers","*");
+  // res.header('Access-Control-Allow-Credentials', true);
+
+  next();
+});
+
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self' https://*.mapbox.com ;base-uri 'self';block-all-mixed-content;font-src 'self' https: data:;frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src https://cdnjs.cloudflare.com https://api.mapbox.com 'self' blob: ;script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests;"
+  );
+  next();
+});
 
 // app.get('/', (req, res) => {
 //   //   res.status(200).send('Hello from server side..');
@@ -92,6 +125,25 @@ app.use((req, res, next) => {
 //   .patch(updateTour)
 //   .delete(deleteTour);
 
+// Views
+// app.get('/', (req, res) => {
+//   res.status(200).render('base', {
+//     title: 'Demo',
+//   });
+// });
+
+// app.get('/overview', (req, res) => {
+//   res.status(200).render('overview', {
+//     title: 'Overview',
+//   });
+// });
+// app.get('/tour', (req, res) => {
+//   res.status(200).render('tour', {
+//     title: 'Tour',
+//   });
+// });
+
+app.use('/', viewRouter);
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
