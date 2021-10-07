@@ -8,6 +8,7 @@ const xss = require('xss-clean');
 const hpp = require('hpp');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
@@ -39,7 +40,7 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // MIDDLEWARES
-console.log(process.env.NODE_ENV);
+// console.log(process.env.NODE_ENV);
 if (process.env.NODE_ENV === 'development') app.use(morgan('dev'));
 
 // Body parser, reading data from body into req.body
@@ -70,17 +71,19 @@ app.use(
 app.use(express.static(`${__dirname}/public`));
 
 app.use((req, res, next) => {
-  console.log('Hello from middleware');
+  // console.log('Hello from middleware');
   // console.log(req.headers)
   next();
 });
+
+app.use(compression());
 
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
   next();
 });
 app.use((req, res, next) => {
-  console.log(req.headers.origin);
+  // console.log(req.headers.origin);
   res.header('Access-Control-Allow-Origin', req.headers.origin);
   // res.header(
   //   'Access-Control-Allow-Headers',
@@ -95,7 +98,7 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self' https://*.mapbox.com ;base-uri 'self';block-all-mixed-content;font-src 'self' https: data:;frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src https://cdnjs.cloudflare.com https://api.mapbox.com 'self' blob: ;script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests;"
+    "default-src 'self' ws: https://*.mapbox.com ;base-uri 'self';block-all-mixed-content;font-src 'self' https: data:;frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src https://cdnjs.cloudflare.com https://api.mapbox.com 'self' blob: ;script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests;"
   );
   next();
 });
@@ -162,6 +165,7 @@ app.all('*', (req, res, next) => {
   // next(err);
 
   // 3
+  // console.log(req);
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 

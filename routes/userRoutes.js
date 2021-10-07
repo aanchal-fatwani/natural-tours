@@ -10,6 +10,8 @@ const {
   deleteMe,
   getMe,
   getUser,
+  uploadUserPhoto,
+  resizeUserPhoto,
 } = require('../controllers/userController');
 const authController = require('../controllers/authController');
 
@@ -38,6 +40,8 @@ router.get(
 router.patch(
   '/updateMe',
   // authController.protect,
+  uploadUserPhoto,
+  resizeUserPhoto,
   updateMe
 );
 router.delete(

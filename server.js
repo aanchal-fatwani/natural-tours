@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 process.on('uncaughtException', (err) => {
   console.log('UNCAUGHT EXCEPTIONS');
   console.log(err.name, err.message);
-  console.log(err);
+  // console.log(err);
   // server.close(() => {
   //   // Suspending any pending request
   //   process.exit(1); // Shutting server
@@ -54,6 +54,7 @@ const server = app.listen(port, () => {
 
 process.on('unhandledRejection', (err) => {
   console.log('UNHANDLED REJECTIONS');
+  // console.log(err);
   console.log(err.name, err.message);
   server.close(() => {
     // Suspending any pending request
