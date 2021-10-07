@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon server",
+    "start": "node server.js",
+    "dev": "nodemon server",
     "start:prod": "set NODE_ENV=production && nodemon server",
     "debug": "ndb server",
     "watch:js": "parcel watch ./public/js/index.js --out-dir ./public/js --out-file bundle.js",
