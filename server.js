@@ -61,4 +61,12 @@ process.on('unhandledRejection', (err) => {
     process.exit(1); // Shutting server
   });
 });
-// console.log(x);
+
+process.on('SIGTERM', () => {
+  // Helps process in process req when heroku sends sigterm i.e. automatically close app after 24 hrs
+  console.log('👋 SIGTERM RECEIVED. Shutting down gracefully');
+  server.close(() => {
+    // process.exit not reqd here as Sigterm automatically shuts the server
+    console.log('💥 Process terminated!');
+  });
+});
